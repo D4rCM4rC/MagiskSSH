@@ -1,0 +1,686 @@
+diff -urN openssh-7.5p1_orig/android-tweaks.c openssh-7.5p1/android-tweaks.c
+--- openssh-7.5p1_orig/android-tweaks.c	1970-01-01 01:00:00.000000000 +0100
++++ openssh-7.5p1/android-tweaks.c	2017-09-26 18:45:51.581083323 +0200
+@@ -0,0 +1,139 @@
++#include "android-tweaks.h"
++#include <stdlib.h>
++
++//char *sshelper_user = NULL;
++
++//static struct passwd android_pass = { "", "", 0, 0, "", "" };
++
++/*
++ * This is a stand-in for getpwuid() on an Android system
++ * running without root authority, so the usual system call
++ * cannot be made. All references to getpwuid() must be
++ * redirected here.
++ * 
++ */
++
++static char datadir_root[] = "/data/ssh/root/";
++static char datadir_shell[] = "/data/ssh/shell/";
++static int android_uid_tweak_isLoaded = 0;
++static uid_t android_uid_tweak_uidRoot=0;
++static uid_t android_uid_tweak_uidShell=2000;
++
++static void android_uid_tweak_load(void) {
++	struct passwd *pw;
++	if(android_uid_tweak_isLoaded)
++		return;
++	android_uid_tweak_isLoaded = 1;
++	pw = getpwnam("root");
++	if(pw != NULL)
++		android_uid_tweak_uidRoot = pw->pw_uid;
++	pw = getpwnam("shell");
++	if(pw != NULL)
++		android_uid_tweak_uidShell = pw->pw_uid;
++}
++
++static char* getUidDir(uid_t uid) {
++	if(uid == android_uid_tweak_uidRoot)
++		return datadir_root;
++	else if(uid == android_uid_tweak_uidShell)
++		return datadir_shell;
++	return NULL;
++}
++
++struct passwd* getpwuida(uid_t uid) {
++	char *new_dir;
++	struct passwd *pw;
++	android_uid_tweak_load();
++	pw = getpwuid(uid);
++	if(pw != NULL && (new_dir = getUidDir(uid)) != NULL) {
++		pw->pw_dir = new_dir;
++	}
++	if(pw) {
++		pw->pw_passwd="";
++#if HAVE_STRUCT_PASSWD_PW_GECOS
++		pw->pw_gecos="";
++#endif
++	}
++	return pw;
++}
++
++// these empty definitions are meant to prevent calling undefined functions
++// from a library that would be a nightmare to try to include
++
++// void *dlopen(const char *__file, int __mode) {
++// 	return NULL;
++// }
++//
++// struct protoent *getprotobyname(const char *name) {
++// 	return NULL;
++// }
++
++struct passwd *getpwnama(const char *name) {
++	char *new_dir;
++	struct passwd *pw;
++	android_uid_tweak_load();
++	pw = getpwnam(name);
++	if(pw != NULL && (new_dir = getUidDir(pw->pw_uid)) != NULL) {
++		pw->pw_dir = new_dir;
++	}
++	if(pw) {
++		pw->pw_passwd="";
++#if HAVE_STRUCT_PASSWD_PW_GECOS
++		pw->pw_gecos="";
++#endif
++	}
++	return pw;
++}
++
++// struct servent *getservbyname(const char *name, const char *proto) {
++// 	return NULL;
++// }
++//
++// struct group *getgrgid(gid_t gid) {
++// 	return NULL;
++// }
++
++void endgrent(void) {
++}
++
++void endpwent(void) {
++}
++
++int setpwent(void) {
++	return 0;
++}
++
++struct passwd *getpwent(void) {
++	return NULL;
++}
++
++// struct group *getgrnam(const char *name) {
++// 	return NULL;
++// }
++//
++// int getgrouplist(const char *user, gid_t group, gid_t *groups, int *ngroups) {
++// 	return 0;
++// }
++//
++// struct spwd *getspnam(const char *name) {
++// 	return NULL;
++// }
++//
++// int initgroups(const char *user, gid_t group) {
++// 	return 0;
++// }
++
++//int getaddrinfo(const char *node, const char *service,
++//               const struct addrinfo *hints,
++//                struct addrinfo **res) {
++//	return 0;
++//}
++
++// netdb:
++
++//int getaddrinfo (const char *__restrict __name,
++//			const char *__restrict __service,
++//			const struct addrinfo *__restrict __req,
++//			struct addrinfo **__restrict __pai) {
++//	return 0;
++//}
+diff -urN openssh-7.5p1_orig/android-tweaks.h openssh-7.5p1/android-tweaks.h
+--- openssh-7.5p1_orig/android-tweaks.h	1970-01-01 01:00:00.000000000 +0100
++++ openssh-7.5p1/android-tweaks.h	2017-09-17 19:14:50.836214227 +0200
+@@ -0,0 +1,14 @@
++#include <sys/types.h>
++#include <pwd.h>
++#include <unistd.h>
++#include <netdb.h>
++
++#ifndef ANDROID_TWEAKS_H
++#define ANDROID_TWEAKS_H
++
++struct passwd* getpwuida(uid_t uid);
++struct passwd* getpwnama(const char *name);
++
++//char *sshelper_user;
++
++#endif
+diff -urN openssh-7.5p1_orig/auth2-pubkey.c openssh-7.5p1/auth2-pubkey.c
+--- openssh-7.5p1_orig/auth2-pubkey.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/auth2-pubkey.c	2017-09-17 19:07:30.334744253 +0200
+@@ -663,7 +663,7 @@
+ 	/* Prepare and verify the user for the command */
+ 	username = percent_expand(options.authorized_principals_command_user,
+ 	    "u", user_pw->pw_name, (char *)NULL);
+-	pw = getpwnam(username);
++	pw = getpwnama(username);
+ 	if (pw == NULL) {
+ 		error("AuthorizedPrincipalsCommandUser \"%s\" not found: %s",
+ 		    username, strerror(errno));
+@@ -992,7 +992,7 @@
+ 	/* Prepare and verify the user for the command */
+ 	username = percent_expand(options.authorized_keys_command_user,
+ 	    "u", user_pw->pw_name, (char *)NULL);
+-	pw = getpwnam(username);
++	pw = getpwnama(username);
+ 	if (pw == NULL) {
+ 		error("AuthorizedKeysCommandUser \"%s\" not found: %s",
+ 		    username, strerror(errno));
+diff -urN openssh-7.5p1_orig/auth.c openssh-7.5p1/auth.c
+--- openssh-7.5p1_orig/auth.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/auth.c	2017-09-17 19:07:19.937591608 +0200
+@@ -640,7 +640,7 @@
+ 	aix_setauthdb(user);
+ #endif
+ 
+-	pw = getpwnam(user);
++	pw = getpwnama(user);
+ 
+ #if defined(_AIX) && defined(HAVE_SETAUTHDB)
+ 	aix_restoreauthdb();
+diff -urN openssh-7.5p1_orig/includes.h openssh-7.5p1/includes.h
+--- openssh-7.5p1_orig/includes.h	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/includes.h	2017-09-17 19:14:02.010496830 +0200
+@@ -173,4 +173,6 @@
+ 
+ #include "entropy.h"
+ 
++#include "android-tweaks.h"
++
+ #endif /* INCLUDES_H */
+diff -urN openssh-7.5p1_orig/loginrec.c openssh-7.5p1/loginrec.c
+--- openssh-7.5p1_orig/loginrec.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/loginrec.c	2017-09-17 19:12:15.215927915 +0200
+@@ -308,7 +308,7 @@
+ 	 * reliably search wtmp(x) for the last login (see
+ 	 * wtmp_get_entry().)
+ 	 */
+-	pw = getpwuid(uid);
++	pw = getpwuida(uid);
+ 	if (pw == NULL)
+ 		fatal("%s: Cannot find account for uid %ld", __func__,
+ 		    (long)uid);
+@@ -381,7 +381,7 @@
+ 
+ 	if (username) {
+ 		strlcpy(li->username, username, sizeof(li->username));
+-		pw = getpwnam(li->username);
++		pw = getpwnama(li->username);
+ 		if (pw == NULL) {
+ 			fatal("%s: Cannot find user \"%s\"", __func__,
+ 			    li->username);
+diff -urN openssh-7.5p1_orig/logintest.c openssh-7.5p1/logintest.c
+--- openssh-7.5p1_orig/logintest.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/logintest.c	2017-09-17 19:08:52.673953224 +0200
+@@ -97,7 +97,7 @@
+ 
+ 	printf("**\n** Testing the API...\n**\n");
+ 
+-	pw = getpwuid(getuid());
++	pw = getpwuida(getuid());
+ 	strlcpy(username, pw->pw_name, sizeof(username));
+ 
+ 	/* gethostname(hostname, sizeof(hostname)); */
+diff -urN openssh-7.5p1_orig/Makefile.in openssh-7.5p1/Makefile.in
+--- openssh-7.5p1_orig/Makefile.in	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/Makefile.in	2017-09-10 17:11:58.454414753 +0200
+@@ -92,10 +92,12 @@
+ 	kex.o kexdh.o kexgex.o kexecdh.o kexc25519.o \
+ 	kexdhc.o kexgexc.o kexecdhc.o kexc25519c.o \
+ 	kexdhs.o kexgexs.o kexecdhs.o kexc25519s.o \
+-	platform-pledge.o platform-tracing.o
++	platform-pledge.o platform-tracing.o \
++	android-tweaks.o
+ 
+ SSHOBJS= ssh.o readconf.o clientloop.o sshtty.o \
+-	sshconnect.o sshconnect1.o sshconnect2.o mux.o
++	sshconnect.o sshconnect1.o sshconnect2.o mux.o \
++	android-tweaks.o
+ 
+ SSHDOBJS=sshd.o auth-rhosts.o auth-passwd.o \
+ 	audit.o audit-bsm.o audit-linux.o platform.o \
+@@ -110,7 +112,8 @@
+ 	sftp-server.o sftp-common.o \
+ 	sandbox-null.o sandbox-rlimit.o sandbox-systrace.o sandbox-darwin.o \
+ 	sandbox-seccomp-filter.o sandbox-capsicum.o sandbox-pledge.o \
+-	sandbox-solaris.o
++	sandbox-solaris.o \
++	android-tweaks.o
+ 
+ MANPAGES	= moduli.5.out scp.1.out ssh-add.1.out ssh-agent.1.out ssh-keygen.1.out ssh-keyscan.1.out ssh.1.out sshd.8.out sftp-server.8.out sftp.1.out ssh-keysign.8.out ssh-pkcs11-helper.8.out sshd_config.5.out ssh_config.5.out
+ MANPAGES_IN	= moduli.5 scp.1 ssh-add.1 ssh-agent.1 ssh-keygen.1 ssh-keyscan.1 ssh.1 sshd.8 sftp-server.8 sftp.1 ssh-keysign.8 ssh-pkcs11-helper.8 sshd_config.5 ssh_config.5
+diff -urN openssh-7.5p1_orig/misc.c openssh-7.5p1/misc.c
+--- openssh-7.5p1_orig/misc.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/misc.c	2017-09-17 19:12:20.476005183 +0200
+@@ -602,9 +602,9 @@
+ 			fatal("tilde_expand_filename: ~username too long");
+ 		memcpy(user, filename, slash);
+ 		user[slash] = '\0';
+-		if ((pw = getpwnam(user)) == NULL)
++		if ((pw = getpwnama(user)) == NULL)
+ 			fatal("tilde_expand_filename: No such user %s", user);
+-	} else if ((pw = getpwuid(uid)) == NULL)	/* ~/path */
++	} else if ((pw = getpwuida(uid)) == NULL)	/* ~/path */
+ 		fatal("tilde_expand_filename: No such uid %ld", (long)uid);
+ 
+ 	/* Make sure directory has a trailing '/' */
+diff -urN openssh-7.5p1_orig/openbsd-compat/explicit_bzero.c openssh-7.5p1/openbsd-compat/explicit_bzero.c
+--- openssh-7.5p1_orig/openbsd-compat/explicit_bzero.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/openbsd-compat/explicit_bzero.c	2017-09-10 16:46:08.773574931 +0200
+@@ -29,7 +29,8 @@
+  * Indirect bzero through a volatile pointer to hopefully avoid
+  * dead-store optimisation eliminating the call.
+  */
+-static void (* volatile ssh_bzero)(void *, size_t) = bzero;
++//static void (* volatile ssh_bzero)(void *, size_t) = bzero;
++static void (* volatile ssh_memset)(void *, char, size_t) = memset;
+ 
+ void
+ explicit_bzero(void *p, size_t n)
+@@ -45,7 +46,8 @@
+ # endif
+ #endif
+ 
+-	ssh_bzero(p, n);
++	ssh_memset(p, 0, n);
++	//ssh_bzero(p, n);
+ }
+ 
+ #endif /* HAVE_MEMSET_S */
+diff -urN openssh-7.5p1_orig/openbsd-compat/getrrsetbyname.c openssh-7.5p1/openbsd-compat/getrrsetbyname.c
+--- openssh-7.5p1_orig/openbsd-compat/getrrsetbyname.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/openbsd-compat/getrrsetbyname.c	2017-09-10 17:09:22.773027823 +0200
+@@ -57,6 +57,8 @@
+ 
+ #include "getrrsetbyname.h"
+ 
++#include "resolv-android-compat.h"
++
+ #if defined(HAVE_DECL_H_ERRNO) && !HAVE_DECL_H_ERRNO
+ extern int h_errno;
+ #endif
+@@ -187,6 +189,7 @@
+     unsigned int rdtype, unsigned int flags,
+     struct rrsetinfo **res)
+ {
++#if 0
+ 	struct __res_state *_resp = _THREAD_PRIVATE(_res, _res, &_res);
+ 	int result;
+ 	struct rrsetinfo *rrset = NULL;
+@@ -197,6 +200,7 @@
+ 	unsigned int index_ans, index_sig;
+ 	u_char answer[ANSWER_BUFFER_SIZE];
+ 
++
+ 	/* check for invalid class and type */
+ 	if (rdclass > 0xffff || rdtype > 0xffff) {
+ 		result = ERRSET_INVAL;
+@@ -343,6 +347,8 @@
+ 	if (response != NULL)
+ 		free_dns_response(response);
+ 	return (result);
++#endif
++	return ERRSET_NODATA;
+ }
+ 
+ void
+diff -urN openssh-7.5p1_orig/openbsd-compat/glob.c openssh-7.5p1/openbsd-compat/glob.c
+--- openssh-7.5p1_orig/openbsd-compat/glob.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/openbsd-compat/glob.c	2017-09-17 19:12:26.656095967 +0200
+@@ -392,7 +392,7 @@
+ 		if (issetugid() != 0 || (h = getenv("HOME")) == NULL) {
+ #endif
+ 		if ((getuid() != geteuid()) || (h = getenv("HOME")) == NULL) {
+-			if ((pwd = getpwuid(getuid())) == NULL)
++			if ((pwd = getpwuida(getuid())) == NULL)
+ 				return pattern;
+ 			else
+ 				h = pwd->pw_dir;
+@@ -401,7 +401,7 @@
+ 		/*
+ 		 * Expand a ~user
+ 		 */
+-		if ((pwd = getpwnam((char*) patbuf)) == NULL)
++		if ((pwd = getpwnama((char*) patbuf)) == NULL)
+ 			return pattern;
+ 		else
+ 			h = pwd->pw_dir;
+diff -urN openssh-7.5p1_orig/openbsd-compat/pwcache.c openssh-7.5p1/openbsd-compat/pwcache.c
+--- openssh-7.5p1_orig/openbsd-compat/pwcache.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/openbsd-compat/pwcache.c	2017-09-17 19:11:58.593683745 +0200
+@@ -64,7 +64,7 @@
+ #endif
+ 			pwopen = 1;
+ 		}
+-		if ((pw = getpwuid(uid)) == NULL) {
++		if ((pw = getpwuida(uid)) == NULL) {
+ 			if (nouser)
+ 				return (NULL);
+ 			(void)snprintf(nbuf, sizeof(nbuf), "%u", uid);
+diff -urN openssh-7.5p1_orig/openbsd-compat/resolv-android-compat.h openssh-7.5p1/openbsd-compat/resolv-android-compat.h
+--- openssh-7.5p1_orig/openbsd-compat/resolv-android-compat.h	1970-01-01 01:00:00.000000000 +0100
++++ openssh-7.5p1/openbsd-compat/resolv-android-compat.h	2017-09-27 22:12:56.846424521 +0200
+@@ -0,0 +1,165 @@
++/*
++ * Copyright (c) 1983, 1987, 1989
++ *    The Regents of the University of California.  All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 4. Neither the name of the University nor the names of its contributors
++ *    may be used to endorse or promote products derived from this software
++ *    without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++/*
++ * Portions Copyright (c) 1996-1999 by Internet Software Consortium.
++ *
++ * Permission to use, copy, modify, and distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND INTERNET SOFTWARE CONSORTIUM DISCLAIMS
++ * ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL INTERNET SOFTWARE
++ * CONSORTIUM BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
++ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
++ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
++ * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
++ * SOFTWARE.
++ */
++
++/*
++ *	@(#)resolv.h	8.1 (Berkeley) 6/2/93
++ *	$BINDId: resolv.h,v 8.31 2000/03/30 20:16:50 vixie Exp $
++ */
++
++typedef enum { res_goahead, res_nextns, res_modified, res_done, res_error }
++	res_sendhookact;
++
++typedef res_sendhookact (*res_send_qhook) (struct sockaddr_in * const *__ns,
++					   const u_char **__query,
++					   int *__querylen,
++					   u_char *__ans,
++					   int __anssiz,
++					   int *__resplen);
++
++typedef res_sendhookact (*res_send_rhook) (const struct sockaddr_in *__ns,
++					   const u_char *__query,
++					   int __querylen,
++					   u_char *__ans,
++					   int __anssiz,
++					   int *__resplen);
++
++/*
++ * Global defines and variables for resolver stub.
++ */
++# define MAXNS			3	/* max # name servers we'll track */
++# define MAXDFLSRCH		3	/* # default domain levels to try */
++# define MAXDNSRCH		6	/* max # domains in search path */
++# define LOCALDOMAINPARTS	2	/* min levels in name that is "local" */
++
++# define RES_TIMEOUT		5	/* min. seconds between retries */
++# define MAXRESOLVSORT		10	/* number of net to sort on */
++# define RES_MAXNDOTS		15	/* should reflect bit field size */
++# define RES_MAXRETRANS		30	/* only for resolv.conf/RES_OPTIONS */
++# define RES_MAXRETRY		5	/* only for resolv.conf/RES_OPTIONS */
++# define RES_DFLRETRY		2	/* Default #/tries. */
++# define RES_MAXTIME		65535	/* Infinity, in milliseconds. */
++
++/*
++ * Resolver options (keep these in synch with res_debug.c, please)
++ */
++#define RES_INIT	0x00000001	/* address initialized */
++#define RES_DEBUG	0x00000002	/* print debug messages */
++#define RES_AAONLY	0x00000004	/* authoritative answers only (!IMPL)*/
++#define RES_USEVC	0x00000008	/* use virtual circuit */
++#define RES_PRIMARY	0x00000010	/* query primary server only (!IMPL) */
++#define RES_IGNTC	0x00000020	/* ignore trucation errors */
++#define RES_RECURSE	0x00000040	/* recursion desired */
++#define RES_DEFNAMES	0x00000080	/* use default domain name */
++#define RES_STAYOPEN	0x00000100	/* Keep TCP socket open */
++#define RES_DNSRCH	0x00000200	/* search up local domain tree */
++#define	RES_INSECURE1	0x00000400	/* type 1 security disabled */
++#define	RES_INSECURE2	0x00000800	/* type 2 security disabled */
++#define	RES_NOALIASES	0x00001000	/* shuts off HOSTALIASES feature */
++#define	RES_USE_INET6	0x00002000	/* use/map IPv6 in gethostbyname() */
++#define RES_ROTATE	0x00004000	/* rotate ns list after each query */
++#define	RES_NOCHECKNAME	0x00008000	/* do not check names for sanity (!IMPL) */
++#define	RES_KEEPTSIG	0x00010000	/* do not strip TSIG records */
++#define	RES_BLAST	0x00020000	/* blast all recursive servers */
++#define RES_USEBSTRING	0x00040000	/* IPv6 reverse lookup with byte
++					   strings */
++#define RES_NOIP6DOTINT	0x00080000	/* Do not use .ip6.int in IPv6
++					   reverse lookup */
++#define RES_USE_EDNS0	0x00100000	/* Use EDNS0.  */
++#define RES_SNGLKUP	0x00200000	/* one outstanding request at a time */
++#define RES_SNGLKUPREOP	0x00400000	/* -"-, but open new socket for each
++					   request */
++#define RES_USE_DNSSEC	0x00800000	/* use DNSSEC using OK bit in OPT */
++#define RES_NOTLDQUERY	0x01000000	/* Do not look up unqualified name
++					   as a TLD.  */
++
++#define RES_DEFAULT	(RES_RECURSE|RES_DEFNAMES|RES_DNSRCH|RES_NOIP6DOTINT)
++
++struct __res_state {
++	int	retrans;		/* retransmition time interval */
++	int	retry;			/* number of times to retransmit */
++	u_long	options;		/* option flags - see below. */
++	int	nscount;		/* number of name servers */
++	struct sockaddr_in
++		nsaddr_list[MAXNS];	/* address of name server */
++# define nsaddr	nsaddr_list[0]		/* for backward compatibility */
++	u_short	id;			/* current message id */
++	/* 2 byte hole here.  */
++	char	*dnsrch[MAXDNSRCH+1];	/* components of domain to search */
++	char	defdname[256];		/* default domain (deprecated) */
++	u_long	pfcode;			/* RES_PRF_ flags - see below. */
++	unsigned ndots:4;		/* threshold for initial abs. query */
++	unsigned nsort:4;		/* number of elements in sort_list[] */
++	unsigned ipv6_unavail:1;	/* connecting to IPv6 server failed */
++	unsigned unused:23;
++	struct {
++		struct in_addr	addr;
++		u_int32_t	mask;
++	} sort_list[MAXRESOLVSORT];
++	/* 4 byte hole here on 64-bit architectures.  */
++	res_send_qhook qhook;		/* query hook */
++	res_send_rhook rhook;		/* response hook */
++	int	res_h_errno;		/* last one set for this context */
++	int	_vcsock;		/* PRIVATE: for res_send VC i/o */
++	u_int	_flags;			/* PRIVATE: see below */
++	/* 4 byte hole here on 64-bit architectures.  */
++	union {
++		char	pad[52];	/* On an i386 this means 512b total. */
++		struct {
++			u_int16_t		nscount;
++			u_int16_t		nsmap[MAXNS];
++			int			nssocks[MAXNS];
++			u_int16_t		nscount6;
++			u_int16_t		nsinit;
++			struct sockaddr_in6	*nsaddrs[MAXNS];
++#ifdef _LIBC
++			unsigned long long int	initstamp
++			  __attribute__((packed));
++#else
++			unsigned int		_initstamp[2];
++#endif
++		} _ext;
++	} _u;
++};
+\ Kein Zeilenumbruch am Dateiende.
+diff -urN openssh-7.5p1_orig/scp.c openssh-7.5p1/scp.c
+--- openssh-7.5p1_orig/scp.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/scp.c	2017-09-17 19:09:38.236622294 +0200
+@@ -481,7 +481,7 @@
+ 	argc -= optind;
+ 	argv += optind;
+ 
+-	if ((pwd = getpwuid(userid = getuid())) == NULL)
++	if ((pwd = getpwuida(userid = getuid())) == NULL)
+ 		fatal("unknown user %u", (u_int) userid);
+ 
+ 	if (!isatty(STDOUT_FILENO))
+diff -urN openssh-7.5p1_orig/servconf.c openssh-7.5p1/servconf.c
+--- openssh-7.5p1_orig/servconf.c	2017-09-13 18:58:46.431795031 +0200
++++ openssh-7.5p1/servconf.c	2017-09-17 19:08:11.269345264 +0200
+@@ -535,7 +535,7 @@
+ 	{ "clientalivecountmax", sClientAliveCountMax, SSHCFG_ALL },
+ 	{ "authorizedkeysfile", sAuthorizedKeysFile, SSHCFG_ALL },
+ 	{ "authorizedkeysfile2", sDeprecated, SSHCFG_ALL },
+-	{ "useprivilegeseparation", sDeprecated, SSHCFG_GLOBAL},
++	{ "useprivilegeseparation", sUsePrivilegeSeparation, SSHCFG_GLOBAL},
+ 	{ "acceptenv", sAcceptEnv, SSHCFG_ALL },
+ 	{ "permittunnel", sPermitTunnel, SSHCFG_ALL },
+ 	{ "permittty", sPermitTTY, SSHCFG_ALL },
+@@ -749,7 +749,7 @@
+ 	if (user == NULL)
+ 		goto out;
+ 
+-	if ((pw = getpwnam(user)) == NULL) {
++	if ((pw = getpwnama(user)) == NULL) {
+ 		debug("Can't match group at line %d because user %.100s does "
+ 		    "not exist", line, user);
+ 	} else if (ga_init(pw->pw_name, pw->pw_gid) == 0) {
+@@ -1374,6 +1374,11 @@
+ 		intptr = &options->disable_forwarding;
+ 		goto parse_flag;
+ 
++	case sUsePrivilegeSeparation:
++		intptr = &use_privsep;
++		multistate_ptr = multistate_privsep;
++		goto parse_multistate;
++
+ 	case sAllowUsers:
+ 		while ((arg = strdelim(&cp)) && *arg != '\0') {
+ 			if (options->num_allow_users >= MAX_ALLOW_USERS)
+@@ -2102,6 +2107,8 @@
+ 		return fmt_multistate_int(val, multistate_gatewayports);
+ 	case sCompression:
+ 		return fmt_multistate_int(val, multistate_compression);
++	case sUsePrivilegeSeparation:
++		return fmt_multistate_int(val, multistate_privsep);
+ 	case sAllowTcpForwarding:
+ 		return fmt_multistate_int(val, multistate_tcpfwd);
+ 	case sAllowStreamLocalForwarding:
+@@ -2277,6 +2284,7 @@
+ 	dump_cfg_fmtint(sDisableForwarding, o->disable_forwarding);
+ 	dump_cfg_fmtint(sAllowStreamLocalForwarding, o->allow_streamlocal_forwarding);
+ 	dump_cfg_fmtint(sStreamLocalBindUnlink, o->fwd_opts.streamlocal_bind_unlink);
++	dump_cfg_fmtint(sUsePrivilegeSeparation, use_privsep);
+ 	dump_cfg_fmtint(sFingerprintHash, o->fingerprint_hash);
+ 
+ 	/* string arguments */
+diff -urN openssh-7.5p1_orig/sftp-server-main.c openssh-7.5p1/sftp-server-main.c
+--- openssh-7.5p1_orig/sftp-server-main.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/sftp-server-main.c	2017-09-17 19:09:43.469699144 +0200
+@@ -43,7 +43,7 @@
+ 	/* Ensure that fds 0, 1 and 2 are open or directed to /dev/null */
+ 	sanitise_stdfd();
+ 
+-	if ((user_pw = getpwuid(getuid())) == NULL) {
++	if ((user_pw = getpwuida(getuid())) == NULL) {
+ 		fprintf(stderr, "No user found for uid %lu\n",
+ 		    (u_long)getuid());
+ 		return 1;
+diff -urN openssh-7.5p1_orig/ssh-add.c openssh-7.5p1/ssh-add.c
+--- openssh-7.5p1_orig/ssh-add.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/ssh-add.c	2017-09-17 19:09:51.621818862 +0200
+@@ -588,7 +588,7 @@
+ 		struct stat st;
+ 		int count = 0;
+ 
+-		if ((pw = getpwuid(getuid())) == NULL) {
++		if ((pw = getpwuida(getuid())) == NULL) {
+ 			fprintf(stderr, "No user found with uid %u\n",
+ 			    (u_int)getuid());
+ 			ret = 1;
+diff -urN openssh-7.5p1_orig/ssh.c openssh-7.5p1/ssh.c
+--- openssh-7.5p1_orig/ssh.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/ssh.c	2017-09-17 19:11:45.774495445 +0200
+@@ -574,7 +574,7 @@
+ 	}
+ #endif
+ 	/* Get user data. */
+-	pw = getpwuid(original_real_uid);
++	pw = getpwuida(original_real_uid);
+ 	if (!pw) {
+ 		logit("No user exists for uid %lu", (u_long)original_real_uid);
+ 		exit(255);
+@@ -2077,7 +2077,7 @@
+ 		free(keys);
+ 	}
+ #endif /* ENABLE_PKCS11 */
+-	if ((pw = getpwuid(original_real_uid)) == NULL)
++	if ((pw = getpwuida(original_real_uid)) == NULL)
+ 		fatal("load_public_identity_files: getpwuid failed");
+ 	pwname = xstrdup(pw->pw_name);
+ 	pwdir = xstrdup(pw->pw_dir);
+diff -urN openssh-7.5p1_orig/sshd.c openssh-7.5p1/sshd.c
+--- openssh-7.5p1_orig/sshd.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/sshd.c	2017-09-17 19:08:29.130607522 +0200
+@@ -1640,7 +1640,7 @@
+ 	);
+ 
+ 	/* Store privilege separation user for later use if required. */
+-	if ((privsep_pw = getpwnam(SSH_PRIVSEP_USER)) == NULL) {
++	if ((privsep_pw = getpwnama(SSH_PRIVSEP_USER)) == NULL) {
+ 		if (use_privsep || options.kerberos_authentication)
+ 			fatal("Privilege separation user %s does not exist",
+ 			    SSH_PRIVSEP_USER);
+diff -urN openssh-7.5p1_orig/ssh-keygen.c openssh-7.5p1/ssh-keygen.c
+--- openssh-7.5p1_orig/ssh-keygen.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/ssh-keygen.c	2017-09-17 19:10:27.182341108 +0200
+@@ -2295,7 +2295,7 @@
+ 	msetlocale();
+ 
+ 	/* we need this for the home * directory.  */
+-	pw = getpwuid(getuid());
++	pw = getpwuida(getuid());
+ 	if (!pw)
+ 		fatal("No user exists for uid %lu", (u_long)getuid());
+ 	if (gethostname(hostname, sizeof(hostname)) < 0)
+diff -urN openssh-7.5p1_orig/ssh-keysign.c openssh-7.5p1/ssh-keysign.c
+--- openssh-7.5p1_orig/ssh-keysign.c	2017-03-20 03:39:27.000000000 +0100
++++ openssh-7.5p1/ssh-keysign.c	2017-09-17 19:11:31.383284059 +0200
+@@ -201,7 +201,7 @@
+ 	key_fd[i++] = open(_PATH_HOST_RSA_KEY_FILE, O_RDONLY);
+ 
+ 	original_real_uid = getuid();	/* XXX readconf.c needs this */
+-	if ((pw = getpwuid(original_real_uid)) == NULL)
++	if ((pw = getpwuida(original_real_uid)) == NULL)
+ 		fatal("getpwuid failed");
+ 	pw = pwcopy(pw);
+ 

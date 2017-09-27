@@ -1,0 +1,5 @@
+ifneq ($(IS_ARCHIVE_DIR_TARGET_CREATED),true)
+IS_ARCHIVE_DIR_TARGET_CREATED:=true
+$(ARCHIVE_DIR):
+	mkdir -p $(ARCHIVE_DIR)
+endif
