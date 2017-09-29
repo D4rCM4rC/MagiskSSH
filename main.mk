@@ -28,10 +28,20 @@ CFLAGS+=-I$(ANDROID_ROOT)/platforms/$(ANDROID_PLATFORM)/arch-$(ANDROID_ARCH)/usr
 LDFLAGS+=-L$(ANDROID_ROOT)/platforms/$(ANDROID_PLATFORM)/arch-$(ANDROID_ARCH)/usr/lib/ --sysroot=$(ANDROID_ROOT)/platforms/$(ANDROID_PLATFORM)/arch-$(ANDROID_ARCH)/
 $(eval $(call save_flags))
 
-.PHONY: $(PHONY_TARGET_PREFIX)all
-$(PHONY_TARGET_PREFIX)all: build_$(PHONY_TARGET_PREFIX)openssl build_$(PHONY_TARGET_PREFIX)openssh build_$(PHONY_TARGET_PREFIX)rsync
+define arch-targets
+.PHONY: copy$(PHONY_TARGET_PREFIX)
+copy$(PHONY_TARGET_PREFIX): copy$(PHONY_TARGET_PREFIX)_openssl copy$(PHONY_TARGET_PREFIX)_openssh copy$(PHONY_TARGET_PREFIX)_rsync
+
+.PHONY: all$(PHONY_TARGET_PREFIX)
+all$(PHONY_TARGET_PREFIX): build$(PHONY_TARGET_PREFIX)_openssl build$(PHONY_TARGET_PREFIX)_openssh build$(PHONY_TARGET_PREFIX)_rsync
+
+INSTALLED_FILES$(PHONY_TARGET_PREFIX):=$(openssl_INSTALLED_FILES) $(openssh_INSTALLED_FILES) $(rsync_INSTALLED_FILES)
+endef
+
 
 $(eval $(call submk,global_targets.mk))
 $(eval $(call submk,openssl.mk))
 $(eval $(call submk,openssh.mk))
 $(eval $(call submk,rsync.mk))
+
+$(eval $(arch-targets))

@@ -27,6 +27,7 @@ define start_package
 	DOWNLOAD_URL=
 	PACKAGE_WANT_PREPARE=
 	pkg-targets=
+	PACKAGE_INSTALLED_FILES=
 endef
 
 $(eval $(call submk,package.mk))

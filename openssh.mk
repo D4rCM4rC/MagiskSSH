@@ -10,6 +10,13 @@ DOWNLOAD_URL:=ftp://mirror.hs-esslingen.de/pub/OpenBSD/OpenSSH/portable/$(ARCHIV
 CFLAGS+=-I$(BUILD_DIR)/openssl/include
 LDFLAGS+=-L$(BUILD_DIR)/openssl/
 
+PACKAGE_INSTALLED_FILES:= $(BUILD_DIR)/usr/bin/ssh         \
+                          $(BUILD_DIR)/usr/bin/sshd        \
+                          $(BUILD_DIR)/usr/bin/sftp        \
+                          $(BUILD_DIR)/usr/bin/scp         \
+                          $(BUILD_DIR)/usr/bin/sftp-server \
+                          $(BUILD_DIR)/usr/bin/ssh-keygen
+
 PACKAGE_WANT_PREPARE=true
 
 define pkg-targets
@@ -20,8 +27,8 @@ $(BUILD_DIR)/$(PACKAGE)/stamp.configured: $(SRC_DIR)/$(PACKAGE)/stamp.prepared $
 	  CFLAGS="$(CFLAGS)" CPPFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"                         \
 	  --disable-utmpx --disable-utmp --disable-wtmp --disable-wtmpx                        \
 	  --sysconfdir=/data/ssh --with-pid-dir=/data/ssh                                      \
-	  --with-default-path="/system/bin:/system/xbin:/system/sbin:/magisk/sshd/usr/bin"     \
-	  --with-superuser-path="/system/bin:/system/xbin:/system/sbin:/magisk/sshd/usr/bin"
+	  --with-default-path="/system/bin:/system/xbin:/system/sbin:/magisk/ssh/usr/bin"      \
+	  --with-superuser-path="/system/bin:/system/xbin:/system/sbin:/magisk/ssh/usr/bin"
 	sed -i -e 's:/\* #undef HAVE_MBLEN \*/:#define HAVE_MBLEN 1:'                          \
 	       -e 's:/\* #undef HAVE_ENDGRENT \*/:#define HAVE_ENDGRENT 1:'                    \
 	    $(BUILD_DIR)/$(PACKAGE)/config.h
@@ -34,6 +41,31 @@ $(SRC_DIR)/$(PACKAGE)/stamp.prepared: $(SRC_DIR)/$(PACKAGE)/stamp.unpacked
 	cd "$(SRC_DIR)/$(PACKAGE)/$(OPENSSH)"; patch -p1 < "$(ROOT_DIR)/patches/$(OPENSSH).patch"
 	$(make-prepared-stamp)
 endif
+
+$(BUILD_DIR)/usr/bin/ssh: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/ssh" "$(BUILD_DIR)/usr/bin/"
+
+$(BUILD_DIR)/usr/bin/sshd: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/sshd" "$(BUILD_DIR)/usr/bin/"
+
+$(BUILD_DIR)/usr/bin/sftp: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/sftp" "$(BUILD_DIR)/usr/bin/"
+
+$(BUILD_DIR)/usr/bin/scp: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/scp" "$(BUILD_DIR)/usr/bin/"
+
+$(BUILD_DIR)/usr/bin/sftp-server: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/sftp-server" "$(BUILD_DIR)/usr/bin/"
+
+$(BUILD_DIR)/usr/bin/ssh-keygen: $(BUILD_DIR)/$(PACKAGE)/stamp.built
+	mkdir -p $(BUILD_DIR)/usr/bin/
+	cp -u "$(BUILD_DIR)/$(PACKAGE)/ssh-keygen" "$(BUILD_DIR)/usr/bin/"
+
 endef
 
 $(eval $(package))
