@@ -8,9 +8,10 @@ def exchange_header(l):
 	return l
 
 extra_lines="""
-  cp -af $INSTALLER/common/arches/$ARCH $MODPATH/usr
-  cp -af $INSTALLER/common/opensshd.init $MODPATH/usr/bin
+  cp -af $INSTALLER/common/$ARCH $MODPATH/usr
+  cp -af $INSTALLER/common/opensshd.init $MODPATH/
   chmod 755 $MODPATH/usr/bin/*
+  chmod 755 $MODPATH/opensshd.init
   ln -s ./libcrypto.so.1.0.0 $MODPATH/usr/lib/libcrypto.so
   mkdir -p /data/ssh
   mkdir -p /data/ssh/root/.ssh

@@ -48,7 +48,10 @@ $(BUILD_DIR)/module/stamp.module-binaries: $(BUILD_DIR)/module/stamp.module-extr
 
 $(BUILD_DIR)/module/stamp.module-initscript: $(BUILD_DIR)/arm/openssh/stamp.built       \
                                              $(BUILD_DIR)/module/stamp.module-extracted
-	sed -e 's#=/bin#=/system/bin#'                 \
+	sed -e 's:#!/bin/sh:#!/system/bin/sh:'         \
+	    -e 's#=/bin#=/system/bin#'                 \
+	    -e 's#.*PidFile.*##'                       \
+	    -e 's#sbin#bin#'                           \
 	    -e 's#^prefix=.*#: $${MODDIR:=/magisk/ssh}\nexport LD_LIBRARY_PATH=\"$$MODDIR/usr/lib\"\nprefix=\"$$MODDIR/usr\"#' \
 	    $(BUILD_DIR)/arm/openssh/opensshd.init     \
 	    > $(BUILD_DIR)/module/magisk_ssh/common/opensshd.init
