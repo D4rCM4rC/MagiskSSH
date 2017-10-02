@@ -6,6 +6,10 @@ def exchange_header(l):
 	if 'ui_print "     Magisk Module Template    "' in l:
 		return '  ui_print "      OpenSSH for Android      "\n'
 	return l
+def enable_service(l):
+	if 'LATESTARTSERVICE' in l:
+		return 'LATESTARTSERVICE=true\n'
+	return l
 
 extra_lines="""
   cp -af $INSTALLER/common/$ARCH $MODPATH/usr
@@ -27,6 +31,7 @@ extra_lines = extra_lines.splitlines()
 extra_lines = [l+'\n' for l in extra_lines]
 
 lines = [exchange_header(l) for l in lines]
+lines = [enable_service(l) for l in lines]
 
 last_brace=0
 for (i,l) in enumerate(lines):

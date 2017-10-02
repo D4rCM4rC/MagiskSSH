@@ -31,6 +31,10 @@ $(BUILD_DIR)/module/stamp.module-sshdconfig: $(BUILD_DIR)/module/stamp.module-ex
 	cp $(ROOT_DIR)/module_data/sshd_config $(BUILD_DIR)/module/magisk_ssh/common/
 	touch $(BUILD_DIR)/module/stamp.module-sshdconfig
 
+$(BUILD_DIR)/module/stamp.module-service: $(BUILD_DIR)/module/stamp.module-extracted
+	cp -f $(ROOT_DIR)/module_data/service.sh $(BUILD_DIR)/module/magisk_ssh/common/
+	touch $(BUILD_DIR)/module/stamp.module-service
+
 $(BUILD_DIR)/module/stamp.module-binaries: $(BUILD_DIR)/module/stamp.module-extracted \
                                            $(INSTALLED_FILES_arm)                     \
                                            $(INSTALLED_FILES_arm64)                   \
@@ -63,6 +67,7 @@ $(BUILD_DIR)/module/stamp.module: $(BUILD_DIR)/module/stamp.module-extracted  \
                                   $(BUILD_DIR)/module/stamp.module-config     \
                                   $(BUILD_DIR)/module/stamp.module-binaries   \
                                   $(BUILD_DIR)/module/stamp.module-sshdconfig \
+                                  $(BUILD_DIR)/module/stamp.module-service    \
                                   $(BUILD_DIR)/module/stamp.module-initscript
 	touch $(BUILD_DIR)/module/stamp.module
 
