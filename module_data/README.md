@@ -1,42 +1,26 @@
-An SSH server for Android devices having Magisk (build system)
-==============================================================
+An SSH server for Android devices having Magisk
+===============================================
 
-This is my WIP for a fully functional system-daemon-like SSH server for Android devices.
+This is an SSH server running as root using the great Magisk systemless root suite. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However, only arm64 has been tested at all. It requires Android API version 24 or higher (Android 7.0 Nougat and higher).
 
-Its core is a version of OpenSSH modified to be usable on Android. It also includes rsync (which actually was my main motivation for this project). It will be available for devices using the architectures arm, arm64, x86, x86_64, mips or mips64.
+## Installation
 
-This repository is a collection of build scripts for simply building an installable Magisk module. It can not be installed itself. Once I have a working installable package, I will link it here.
+Download the zip file and install it via the Magisk Manager app. Once this module is available in the Magisk module repository, you can just install it from there.
 
+## Configuration
 
-## Used Packages And Included Resources
+SSH keys can be put into `/data/ssh/root/.ssh/authorized_keys` and `/data/ssh/shell/.ssh/authorized_keys` using your favorite method of editing files.
 
-* OpenSSL 1.0.2l (only needed for its libcrypto)
-* OpenSSH 7.5p1
-* Rsync 3.1.2
+The sshd configuration file in `/data/ssh/sshd_config` can be edited as well, but please be aware that some features usually present in an OpenSSH installation may be missing. Most importantly, password login is not possible using this package.
 
-Some changes to OpenSSH are used from [Arachnoid's SSHelper](https://arachnoid.com/android/SSHelper/). Also I have to partially ship a version of `resolv.h` from my system, as it is somehow needed to compile OpenSSH and, as far as I can tell, as 'internal-only' header not included in the Android NDK.
+The ssh daemon automatically starts on device boot. If this is undesired, you can create a file `/data/ssh/no-autostart`. It will not start the service then.
 
-Of course it will use the Magisk module template.
+## Usage
 
+Once you have written a valid SSH public key into an `authorized_keys` file (see section 'Configuration' above), you can connect to the device using `ssh shell@<device_ip>` or `ssh root@<device_ip>`, while supplying the correct private key. You will drop into a shell on the device. sftp and rsync should work as usual.
 
-## Build Dependencies
+If you want to manually start/stop the sshd-service, you may do so using `/magisk/ssh/opensshd.init start` and `/magisk/ssh/opensshd.init stop`. This is usually not necessary but may be useful if you use the `no-autostart` file described earlier.
 
-(versions TBD)
+## Uninstallation
 
-* Recent GNU/Linux system
-* Make
-* Wget
-* Android NDK
-
-
-## How To Build
-
-(preliminary)
-
-    mkdir build
-    cd build
-    make -f ../all_arches.mk -j8 all
-
-## License
-
-This program is under the GPLv3. It includes software with different licenses.
+Uninstalling the module via the Magisk Manager does not fully remove all data that has been installed or created during execution. You may want to delete the `/data/ssh` folder from your device to remove all traces of this module.
