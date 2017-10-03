@@ -1,7 +1,7 @@
 An SSH server for Android devices having Magisk
 ===============================================
 
-This is an SSH server running as root using the great Magisk systemless root suite. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However, only arm64 has been tested at all. It requires Android API version 24 or higher (Android 7.0 Nougat and higher).
+This is an SSH server running as root using the great Magisk systemless root suite. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However, only arm64 has been tested at all. It requires Android API version 21 or higher (Android 5.0 Lollipop and higher).
 
 ## Installation
 
