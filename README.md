@@ -7,7 +7,7 @@ Its core is a version of OpenSSH modified to be usable on Android. It also inclu
 
 This repository is a collection of build scripts for simply building an installable Magisk module. It can not be installed itself. Once I have a working installable package, I will link it here.
 
-It should run on all devices with Android API version 21 or higher (Android 5.0 Lollipop and higher) that have [Magisk](https://github.com/topjohnwu/Magisk) installed. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However I only tested it on my arm64 Xiaomi Redmi Note 4.
+It should run on all devices with Android API version 23 or higher (Android 6.0 Marshmallow and higher) that have [Magisk](https://github.com/topjohnwu/Magisk) installed. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However I only tested it on my arm64 Xiaomi Redmi Note 4.
 
 ## Download and Install
 
