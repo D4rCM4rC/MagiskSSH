@@ -9,8 +9,14 @@ This repository is a collection of build scripts for simply building an installa
 
 It should run on all devices with Android API version 21 or higher (Android 5.0 Lollipop and higher) that have [Magisk](https://github.com/topjohnwu/Magisk) installed. It includes binaries for arm, arm64, x86, x86_64, mips and mips64. However I only tested it on my arm64 Xiaomi Redmi Note 4.
 
+## Download and Install
 
-## Used Packages And Included Resources
+The module can be downloaded in the [GitHub releases section for this repository](https://github.com/D4rCM4rC/MagiskSSH/releases). Further hints for installation, configuration and usage can be found [in the module's README.md](module_data/README.md).
+
+You don't trust me and don't want to use binaries I compiled? No problem at all! Just head to [How To Build](#how-to-build), grab the source code, check it and compile it yourself.
+
+
+## Used Packages and Included Resources
 
 * [OpenSSL 1.0.2l](https://www.openssl.org/) (only needed for its libcrypto)
 * [OpenSSH 7.5p1](https://www.openssh.com/)
@@ -18,7 +24,6 @@ It should run on all devices with Android API version 21 or higher (Android 5.0 
 * [Magisk Module Template v1400](https://github.com/topjohnwu/magisk-module-template)
 
 Some changes to OpenSSH are used from [Arachnoid's SSHelper](https://arachnoid.com/android/SSHelper/). Also I have to partially ship a version of `resolv.h` from my system. It is, as far as I can tell, an 'internal-only' header and not included in the Android NDK. Still OpenSSH somehow needs it to compile.
-
 
 ## How To Build
 
