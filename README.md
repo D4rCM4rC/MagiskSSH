@@ -18,8 +18,8 @@ You don't trust me and don't want to use binaries I compiled? No problem at all!
 
 ## Used Packages and Included Resources
 
-* [OpenSSL 1.0.2l](https://www.openssl.org/) (only needed for its libcrypto)
-* [OpenSSH 7.5p1](https://www.openssh.com/)
+* [OpenSSL 1.0.2m](https://www.openssl.org/) (only needed for its libcrypto)
+* [OpenSSH 7.6p1](https://www.openssh.com/)
 * [Rsync 3.1.2](https://rsync.samba.org/)
 * [Magisk Module Template v1400](https://github.com/topjohnwu/magisk-module-template)
 
@@ -44,6 +44,7 @@ The Android-NDK path is set to `/opt/android-ndk` per default. It can be changed
 * Make. Only tested using GNU Make 4.2.1
 * Wget. Only tested using GNU Wget 1.19.1
 * Android NDK. Only tested using version 14.1.3816874
+* Python3. Only tested using Python 3.4.5
 
 Newer versions generally should work. Older versions may work or may not.
 

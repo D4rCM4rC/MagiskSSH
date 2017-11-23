@@ -1,5 +1,5 @@
 $(eval $(call start_package))
-OPENSSL?=openssl-1.0.2l
+OPENSSL?=openssl-1.0.2m
 
 PACKAGE:=openssl
 
