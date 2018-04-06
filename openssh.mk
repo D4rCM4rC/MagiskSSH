@@ -1,5 +1,5 @@
 $(eval $(call start_package))
-OPENSSH?=openssh-7.6p1
+OPENSSH?=openssh-7.7p1
 
 PACKAGE=openssh
 
@@ -31,6 +31,7 @@ $(BUILD_DIR)/$(PACKAGE)/stamp.configured: $(SRC_DIR)/$(PACKAGE)/stamp.prepared $
 	  --with-superuser-path="/system/bin:/system/xbin:/system/sbin:/magisk/ssh/usr/bin"
 	sed -i -e 's:/\* #undef HAVE_MBLEN \*/:#define HAVE_MBLEN 1:'                          \
 	       -e 's:/\* #undef HAVE_ENDGRENT \*/:#define HAVE_ENDGRENT 1:'                    \
+	       -e 's:/\* #undef HAVE_BZERO \*/:#define HAVE_BZERO 1:'                          \
 	    $(BUILD_DIR)/$(PACKAGE)/config.h
 	$(make-configured-stamp)
 

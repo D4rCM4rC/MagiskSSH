@@ -38,7 +38,7 @@ IS_SRC_$(PACKAGE)_TARGET_CREATED:=true
 $(SRC_DIR)/$(PACKAGE)/stamp.unpacked: $(ARCHIVE_DIR)/$(ARCHIVE_NAME)
 	#TODO: verify hash
 	mkdir -p "$(SRC_DIR)/$(PACKAGE)/"
-	tar -xvf "$(ARCHIVE_DIR)/$(ARCHIVE_NAME)" -C "$(SRC_DIR)/$(PACKAGE)"
+	tar -xf "$(ARCHIVE_DIR)/$(ARCHIVE_NAME)" -C "$(SRC_DIR)/$(PACKAGE)"
 	touch $(SRC_DIR)/$(PACKAGE)/stamp.unpacked
 endif
 

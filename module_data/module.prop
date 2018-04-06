@@ -1,7 +1,7 @@
 id=ssh
 name=SSH for Magisk
-version=v0.1
-versionCode=1
+version=v0.3
+versionCode=3
 author=D4rCM4rC
 description=OpenSSH and Rsync bundled with simple start scripts for Android with Magisk
-template=1400
+minMagisk=1500
